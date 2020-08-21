@@ -33,13 +33,13 @@ paperclip = Item(
 
 fertilizer = Item(
     price=75,
+    for_sale=True,
     name="EZ-Grow fertilizer",
     description="""
     A bottle of plant fertilizer.
     
     When applied, will increase plant growth rate by 1.5x for 3 days.    
     """,
-    for_sale=True,
 )
 
 
@@ -86,5 +86,16 @@ coin = Item(
          ██████░░░░░░████████      
          ██████▓▓░░▓▓████░
     ```     
+    """,
+)
+
+postcard = Item(
+    price=20,
+    for_sale=True,
+    name="postcard",
+    description="""
+    A blank postcard.
+
+    Can be used to send a private message to another user. 
     """,
 )

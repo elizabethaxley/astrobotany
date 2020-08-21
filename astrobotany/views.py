@@ -563,8 +563,12 @@ def visit_plant(request, user_id):
     user.plant.refresh()
     user.plant.save()
 
+    has_postcard = request.user.get_item_quantity(items.postcard)
+
     alert = request.session.pop("alert", None)
-    body = render_template("visit_plant.gmi", request=request, plant=user.plant, alert=alert)
+    body = render_template(
+        "visit_plant.gmi", request=request, plant=user.plant, alert=alert, has_postcard=has_postcard
+    )
     return Response(Status.SUCCESS, "text/gemini", body)
 
 
@@ -600,6 +604,56 @@ def visit_plant_search(request, user_id):
     request.session["alert"] = user.plant.pick_petal(request.user)
     user.plant.save()
 
+    return Response(Status.REDIRECT_TEMPORARY, f"/app/visit/{user_id}")
+
+
+@app.route("/app/visit/(?P<user_id>[0-9a-f]{32})/postcard")
+@authenticate
+def visit_plant_postcard(request, user_id):
+    user = User.get_or_none(user_id=user_id)
+    if user is None:
+        return Response(Status.NOT_FOUND, "User not found")
+
+    subject = request.session.get("postcard_subject")
+    body = render_template("visit_postcard.gmi", request=request, user=user, subject=subject)
+    return Response(Status.SUCCESS, "text/gemini", body)
+
+
+@app.route("/app/visit/(?P<user_id>[0-9a-f]{32})/postcard/subject")
+@authenticate
+def visit_plant_postcard_subject(request, user_id):
+    user = User.get_or_none(user_id=user_id)
+    if user is None:
+        return Response(Status.NOT_FOUND, "User not found")
+
+    if not request.query:
+        return Response(Status.INPUT, "Enter the message subject (max 128 chars):")
+    elif len(request.query) > 128:
+        return Response(Status.BAD_REQUEST, "Subject exceeds maximum length")
+
+    request.session["postcard_subject"] = request.query
+    return Response(Status.REDIRECT_TEMPORARY, f"/app/visit/{user_id}/postcard")
+
+
+@app.route("/app/visit/(?P<user_id>[0-9a-f]{32})/postcard/send")
+@authenticate
+def visit_plant_postcard_send(request, user_id):
+    user = User.get_or_none(user_id=user_id)
+    if user is None:
+        return Response(Status.NOT_FOUND, "User not found")
+
+    if not request.session.get("postcard_subject"):
+        return Response(Status.BAD_REQUEST, "Postcard subject cannot be blank.")
+
+    if not request.user.remove_item(items.postcard):
+        return Response(Status.BAD_REQUEST, "You do not have any postcards in your inventory.")
+
+    subject = request.session.pop("postcard_subject")
+    body = "Hello world!"
+
+    Inbox.create(user_from=request.user, user_to=user, subject=subject, body=body)
+
+    request.session["alert"] = f"Your postcard to {user.username} has been mailed!"
     return Response(Status.REDIRECT_TEMPORARY, f"/app/visit/{user_id}")
 
 

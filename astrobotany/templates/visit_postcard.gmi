@@ -1,0 +1,8 @@
+# Astrobotany - Send postcard
+
+To: {{ user.username }}
+From: {{ request.user.username }}
+
+=>/app/visit/{{ user.user_id }}/postcard/subject Subject: {{ subject | default("(empty)", true) }}
+
+=>/app/visit/{{ user.user_id }}/postcard/send 📮 Send it!
